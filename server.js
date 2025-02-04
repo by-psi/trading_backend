@@ -26,6 +26,12 @@ async function getAveragePrice() {
     return parseFloat(response.data.weightedAvgPrice); 
 }
 
+async function getDailyHighLow() {
+    const response = await axios.get("https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT");
+    highestPrice = parseFloat(response.data.highPrice); // Preço mais alto das últimas 24h
+    lowestPrice = parseFloat(response.data.lowPrice);   // Preço mais baixo das últimas 24h
+}
+
 async function sendTelegramMessage(message) {
     const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
@@ -88,6 +94,27 @@ app.post('/send-alerts', async (req, res) => {
         else if (price >= SELL_PRICE) await sendTelegramMessage(`🔴 BTC subiu para ${price}. Hora de vender!`);
     }
     res.json({ status: "Alerta enviado." });
+});
+
+app.get('/trade-recommendation', async (req, res) => {
+    try {
+        await getDailyHighLow();
+        const price = await getBTCPrice();
+
+        let recommendation = "Aguardando melhores oportunidades...";
+        const sellThreshold = highestPrice * 0.98; // Vender se estiver 2% abaixo da resistência
+        const buyThreshold = lowestPrice * 1.02; // Comprar se estiver 2% acima do suporte
+
+        if (price <= buyThreshold) {
+            recommendation = "🔵 Recomendação: COMPRAR! O BTC está próximo do suporte.";
+        } else if (price >= sellThreshold) {
+            recommendation = "🔴 Recomendação: VENDER! O BTC está próximo da resistência.";
+        }
+
+        res.json({ price, highestPrice, lowestPrice, recommendation });
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao buscar preço" });
+    }
 });
 
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
