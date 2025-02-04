@@ -21,6 +21,11 @@ async function getBTCPrice() {
     return parseFloat(res.data.price);
 }
 
+async function getAveragePrice() {
+    const response = await axios.get("https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT");
+    return parseFloat(response.data.weightedAvgPrice); 
+}
+
 async function sendTelegramMessage(message) {
     const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
@@ -34,12 +39,14 @@ async function sendTelegramMessage(message) {
 
 async function monitorPrices() {
     if (!monitoring) return;
-    
-    const price = await getBTCPrice();
-    console.log(`BTC Price: ${price}`);
 
-    const BUY_PRICE = 60000;
+    const BUY_PRICE = await getAveragePrice();
+    if (!BUY_PRICE) return console.error("Erro ao obter preço médio. Monitoramento pausado.");
+
     const SELL_PRICE = BUY_PRICE * 1.1;
+    const price = await getBTCPrice();
+
+    console.log(`BTC Atual: ${price} | Preço Médio 24h: ${BUY_PRICE}`);
 
     if (price <= BUY_PRICE) await sendTelegramMessage(`🔵 BTC caiu para ${price}. Hora de comprar!`);
     else if (price >= SELL_PRICE) await sendTelegramMessage(`🔴 BTC subiu para ${price}. Hora de vender!`);
@@ -57,26 +64,31 @@ app.get('/btc-price', async (req, res) => {
 	}
 });
 
-app.post('/start-monitoring', (req, res) => {
-    if (!monitoring) {
-        monitoring = true;
-        monitorPrices();
+app.get("/btc-average-price", async (req, res) => {
+	try {
+        const price = await getAveragePrice();
+        res.json({ avgPrice: price });
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao buscar preço" });
     }
-    res.json({ status: "Monitoramento iniciado." });
-});
-
-app.post('/stop-monitoring', (req, res) => {
-    monitoring = false;
-    res.json({ status: "Monitoramento parado." });
 });
 
 app.post('/send-alerts', async (req, res) => {
     if (!alerts) {
         alerts = true;
+        const BUY_PRICE = await getAveragePrice();
+        if (!BUY_PRICE) return console.error("Erro ao obter preço médio. Monitoramento pausado.");
+    
+        const SELL_PRICE = BUY_PRICE * 1.1;
         const price = await getBTCPrice();
-        await sendTelegramMessage(`📢 BTC agora está em ${price}`);
+    
+        console.log(`BTC Atual: ${price} | Preço Médio 24h: ${BUY_PRICE}`);
+    
+        if (price <= BUY_PRICE) await sendTelegramMessage(`🔵 BTC caiu para ${price}. Hora de comprar!`);
+        else if (price >= SELL_PRICE) await sendTelegramMessage(`🔴 BTC subiu para ${price}. Hora de vender!`);
     }
     res.json({ status: "Alerta enviado." });
 });
+
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
 
