@@ -1,36 +1,6 @@
 /**
  * server.js
-
-
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const { startMonitoring, startSendingAlerts, stopAllServices } = require("./services/bot");
-
-const app = express();
-const PORT = process.env.PORT || 5000;
-
-app.use(cors());
-
-app.post("/start-monitoring", (req, res) => {
-	startMonitoring(true);
-	res.json({ status: "Monitoramento automático iniciado!" });
-});
-
-app.post("/start-alerts", (req, res) => {
-	startSendingAlerts();
-	res.json({ status: "Envio de alertas para Telegram iniciado!" });
-});
-
-app.post("/stop-services", (req, res) => {
-	stopAllServices();
-	res.json({ status: "Todos os serviços parados!" });
-});
-
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
 */
-
-// The code above is a simplified version of the original code. The original code has more features and functionalities.
 
 require('dotenv').config();
 const express = require('express');

@@ -11,7 +11,7 @@ let sendAlertInterval;
 async function monitorPrices(autoTrade) {
 	const prices = await getPrices();
 	const BTC_PRICE = parseFloat(prices[0].price);
-	const BUY_PRICE = 60000;
+	const BUY_PRICE = 94000;
 	const SELL_PRICE = BUY_PRICE * 1.1;
 
 	if (autoTrade) {
